@@ -1,0 +1,21 @@
+keys:
+- name: status
+  type: string
+  range: categorical
+  possible values: 
+  - closed
+  - not started
+  - open
+  - paused
+  - dropped
+- name: priority
+  type: boolean
+- name: due date
+  type: date
+- name: project
+  type: string
+  range: categorical
+  possible values:
+  - work
+  - personal
+  
