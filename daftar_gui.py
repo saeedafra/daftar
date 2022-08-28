@@ -61,90 +61,107 @@ class DaftarGui(tk.Tk):
         self.window.bind("<Configure>",self.window_resize)
         
         self.settings_frame = tk.Frame(master=self.window,relief=tk.RAISED)
-        self.settings_frame.pack(fill=tk.X, pady=5, padx=5)
+        self.settings_frame.pack(fill=tk.X, pady=2, padx=2)
 
         self.db_filename_entry = tk.Entry(master=self.settings_frame)
         self.db_filename_entry.insert(0,"[path to ipcat db file]")
         self.db_filename_entry.pack(fill=tk.X, side=tk.LEFT, expand=True)
         
         self.db_file_button = tk.Button(master=self.settings_frame, text="Browse", command=self.db_file_button_command)
-        self.db_file_button.pack(side=tk.RIGHT, padx=5)
+        self.db_file_button.pack(side=tk.RIGHT, padx=2)
 
         self.db_load_button = tk.Button(master=self.settings_frame, text="load", command=self.db_load_button_command)
-        self.db_load_button.pack(side=tk.RIGHT, padx=5)
+        self.db_load_button.pack(side=tk.RIGHT, padx=2)
     
         self.settings_button = tk.Button(master=self.settings_frame, text="Settings", command=self.settings_button_command)
-        self.settings_button.pack(side=tk.RIGHT, padx=5)
+        self.settings_button.pack(side=tk.RIGHT, padx=2)
 
         self.save_button = tk.Button(master=self.settings_frame, text="Save", command=self.save_button_command)
-        self.save_button.pack(side=tk.RIGHT, padx=5)
+        self.save_button.pack(side=tk.RIGHT, padx=2)
 
         self.new_button = tk.Button(master=self.settings_frame, text="New", command=self.new_button_command)
-        self.new_button.pack(side=tk.RIGHT, padx=5)
+        self.new_button.pack(side=tk.RIGHT, padx=2)
         
         self.discard_button = tk.Button(master=self.settings_frame, text="Discard", command=self.discard_button_command)
-        self.discard_button.pack(side=tk.RIGHT, padx=5)
+        self.discard_button.pack(side=tk.RIGHT, padx=2)
 
         self.keys_yml_button = tk.Button(master=self.settings_frame, text="Reload keys", command=self.keys_yml_button_command)
-        self.keys_yml_button.pack(side=tk.RIGHT, padx=5)
+        self.keys_yml_button.pack(side=tk.RIGHT, padx=2)
 
         self.filter_frame = tk.Frame(master=self.window,relief=tk.RAISED)
-        self.filter_frame.pack(pady=5, padx=5)
+        self.filter_frame.pack(side = tk.LEFT, pady=2, padx=2, expand=True, fill=tk.Y)
 
-       
-
-        # self.filter_dropdown_var = tk.StringVar()
-        # self.filter_dropdown_var.set( "" )
-        # self.filter_dropdown_list=[""]
-        # self.filter_dropdown = tk.OptionMenu( self.filter_frame , self.filter_dropdown_var , *self.filter_dropdown_list )
-        # self.filter_dropdown.pack(side=tk.LEFT, padx=5)
+        self.filter_list_label = tk.Label(self.filter_frame, text = "Filters")
+        self.filter_list_label.pack()
 
         self.filter_keys_list_var = tk.StringVar(value=[key for key in self.settings_dict["filter_keys"]])
         self.filter_keys_list = tk.Listbox(master=self.filter_frame, listvariable=self.filter_keys_list_var)
-        self.filter_keys_list.pack(fill=tk.Y, side=tk.LEFT, expand = False)
+        self.filter_keys_list.pack(fill=tk.Y, expand = True)
         self.filter_keys_list.bind("<<ListboxSelect>>", self.filter_keys_list_change)
         self.filter_keys_list_change()
         
+        self.filter_key_entry = tk.Entry(master=self.filter_frame)
+        self.filter_key_entry.insert(0,"")
+        self.filter_key_entry.pack()
+        self.filter_key_entry.bind("<KeyRelease>", self.filter_key_entry_change)
+
         self.filter_value_entry = tk.Entry(master=self.filter_frame)
         self.filter_value_entry.insert(0,"")
-        self.filter_value_entry.pack(side=tk.LEFT)
+        self.filter_value_entry.pack()
         self.filter_value_entry.bind("<KeyRelease>", self.filter_value_entry_change)
 
-        self.add_filter_button = tk.Button(master=self.filter_frame, text="+", command=self.add_filter_button_command)
-        self.add_filter_button.pack(side=tk.LEFT, padx=5)
+        self.filter_buttons_frame = tk.Frame(master=self.filter_frame,relief=tk.RAISED)
+        self.filter_buttons_frame.pack(pady=2, padx=2)
 
-        self.del_filter_button = tk.Button(master=self.filter_frame, text="-", command=self.del_filter_button_command)
-        self.del_filter_button.pack(side=tk.LEFT, padx=5)
+        self.add_filter_button = tk.Button(master=self.filter_buttons_frame, text="+", command=self.add_filter_button_command)
+        self.add_filter_button.pack(side=tk.LEFT, padx=2)
+
+        self.del_filter_button = tk.Button(master=self.filter_buttons_frame, text="-", command=self.del_filter_button_command)
+        self.del_filter_button.pack(side=tk.LEFT, padx=2)
 
         self.filter_list_var = tk.StringVar(value=[""])
         self.filter_list = tk.Listbox(master=self.filter_frame, listvariable=self.filter_list_var)
-        self.filter_list.pack(fill=tk.Y, side=tk.RIGHT, expand = False)
+        self.filter_list.pack(fill=tk.Y, expand = True)
         self.filter_list.bind("<<ListboxSelect>>", self.filter_list_change)
 
-        self.task_lists_frame = tk.Frame(master=self.window,relief=tk.RAISED)
-        self.task_lists_frame.pack(fill=tk.BOTH, side=tk.LEFT, expand=True, pady=5, padx=5)
+        self.left_frame = tk.Frame(master=self.window,relief=tk.RAISED)
+        self.left_frame.pack(fill=tk.BOTH, side=tk.LEFT, expand=True, pady=2, padx=2)
         
+        self.tasks_list_label = tk.Label(self.left_frame, text = "Tasks view")
+        self.tasks_list_label.pack()
+
         self.task_list_var = tk.StringVar(value=[""])
-        self.task_list=tk.Listbox(master=self.task_lists_frame, listvariable=self.task_list_var)
+        self.task_list=tk.Listbox(master=self.left_frame, listvariable=self.task_list_var)
         self.task_list.pack(fill=tk.BOTH, expand = True)
         self.task_list.bind("<<ListboxSelect>>", self.task_list_change)
         
-        self.add_task_button = tk.Button(master=self.task_lists_frame, text="+", command=self.add_task_command)
+        self.child_issue_var = tk.IntVar()
+        self.child_task_checkbox = tk.Checkbutton(self.left_frame, text='Child task',\
+            variable=self.child_issue_var, onvalue=1, offvalue=0)
+        self.child_task_checkbox.pack(side= tk.RIGHT, padx=2)
+
+        self.add_task_button = tk.Button(master=self.left_frame, text="+", command=self.add_task_command)
         self.add_task_button.pack(side=tk.RIGHT, padx=2)
 
-        self.del_task_button = tk.Button(master=self.task_lists_frame, text="-", command=self.del_task_command)
+        self.del_task_button = tk.Button(master=self.left_frame, text="-", command=self.del_task_command)
         self.del_task_button.pack(side=tk.RIGHT, padx=2)
 
         self.middle_frame = tk.Frame(master=self.window,relief=tk.RAISED)
-        self.middle_frame.pack(fill=tk.Y, side = tk.LEFT, pady=5, padx=5)
+        self.middle_frame.pack(fill=tk.Y, side = tk.LEFT, pady=2, padx=2)
         
+        self.hierarchy_list_label = tk.Label(self.middle_frame, text = "Hierarchies")
+        self.hierarchy_list_label.pack()
+
         self.hierarchy_list_var = tk.StringVar(value=[""])
-        self.hierarchy_list=tk.Listbox(master=self.middle_frame,  listvariable=self.hierarchy_list_var, height = 7)
+        self.hierarchy_list=tk.Listbox(master=self.middle_frame,  listvariable=self.hierarchy_list_var, height = 5)
         self.hierarchy_list.pack(fill=tk.BOTH, expand = True)
         self.hierarchy_list.bind("<<ListboxSelect>>", self.hierarchy_list_change)
 
+        self.keys_list_label = tk.Label(self.middle_frame, text = "Keys")
+        self.keys_list_label.pack()
+
         self.keys_list_var = tk.StringVar(value=[""])
-        self.keys_list=tk.Listbox(master=self.middle_frame,  listvariable=self.keys_list_var, height = 7)
+        self.keys_list=tk.Listbox(master=self.middle_frame,  listvariable=self.keys_list_var, height = 6)
         self.keys_list.pack(fill=tk.BOTH, expand = True)
         self.keys_list.bind("<<ListboxSelect>>", self.keys_list_change)
         self.keys_list.bind('<Double-1>', self.keys_list_doubleclick)
@@ -156,7 +173,10 @@ class DaftarGui(tk.Tk):
         self.add_key_button.pack(padx=2, side = tk.RIGHT)
 
         self.right_frame = tk.Frame(master=self.window,relief=tk.RAISED)
-        self.right_frame.pack(fill=tk.BOTH, side = tk.LEFT, expand=True, pady=5, padx=5)
+        self.right_frame.pack(fill=tk.BOTH, side = tk.LEFT, expand=True, pady=2, padx=2)
+
+        self.logs_list_label = tk.Label(self.right_frame, text = "Log entries")
+        self.logs_list_label.pack()
 
         self.logs_list_var = tk.StringVar(value=[""])
         self.logs_list=tk.Listbox(master=self.right_frame,  listvariable=self.logs_list_var)
@@ -340,13 +360,12 @@ class DaftarGui(tk.Tk):
             self.auto_save()
 
     def add_filter_button_command(self, event=[]):
-        if self.current_selected_filter_key_index == -1:
+        if self.filter_key_entry.get().strip() == "":
             return
         if self.current_filter_entry_value == None:
             return
-        
-        self.current_filters[self.filter_keys_list.get(self.current_selected_filter_key_index)]=\
-            self.current_filter_entry_value
+        key = self.filter_key_entry.get().strip()
+        self.current_filters[key]= self.current_filter_entry_value
         self.update_filters_list()
 
     def update_filters_list(self):
@@ -393,9 +412,18 @@ class DaftarGui(tk.Tk):
 
     def filter_list_change(self,event=[]):
         pass
+    
     def filter_keys_list_change(self,event=[]):
         if self.filter_keys_list.curselection():
             self.current_selected_filter_key_index = self.filter_keys_list.curselection()[0]
+            self.filter_key_entry.delete(0,tk.END)
+            self.filter_key_entry.insert(0,\
+                self.filter_keys_list.get(self.current_selected_filter_key_index))
+            self.filter_value_entry_change()
+
+    def filter_key_entry_change(self, event=[]):
+        if self.filter_key_entry.get().strip() != "":
+            self.filter_value_entry_change()
 
     def filter_value_entry_change(self,event=[]):
         value_string=self.filter_value_entry.get()
@@ -403,10 +431,13 @@ class DaftarGui(tk.Tk):
         value=None #indicating no change
 
         #return value could have any type, None indicating a probelm
-        if self.current_selected_filter_key_index != -1:
-            key = self.filter_keys_list.get(self.current_selected_filter_key_index)
-            value = parsing_tools.check_key_value(self.settings_dict["filter_keys"][key]\
-                , value_string)
+        key = self.filter_key_entry.get().strip()
+        if key != "":
+            if key in self.settings_dict["filter_keys"]:
+                value = parsing_tools.check_key_value(self.settings_dict["filter_keys"][key]\
+                    , value_string)
+            else:
+                value = value_string
         
         if value == None:
             self.filter_value_entry.config(fg="red")
