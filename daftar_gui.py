@@ -54,9 +54,9 @@ class DaftarGui(tk.Tk):
          
     def build_window(self):
         self.window = tk.Tk()
-        self.window.geometry("700x500")
-        self.window_height=500
-        self.window_width=700
+        self.window.geometry("800x500")
+        #self.window_height=500
+        #self.window_width=700
         self.window.title("Logger v0.0")
         self.window.bind("<Configure>",self.window_resize)
         
