@@ -138,6 +138,7 @@ class DaftarGui(tk.Tk):
         self.new_task_entry = tk.Entry(master=self.left_frame)
         self.new_task_entry.insert(0,"")
         self.new_task_entry.pack()
+        self.new_task_entry.bind('<Return>', self.add_task_command)
         #self.new_task_entry.bind("<KeyRelease>", self.new_task_entry_change)
 
         self.left_middle_frame = tk.Frame(master=self.left_frame,relief=tk.RAISED)
