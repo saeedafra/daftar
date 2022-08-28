@@ -135,10 +135,23 @@ class DaftarGui(tk.Tk):
         self.task_list.pack(fill=tk.BOTH, expand = True)
         self.task_list.bind("<<ListboxSelect>>", self.task_list_change)
         
+        self.new_task_entry = tk.Entry(master=self.left_frame)
+        self.new_task_entry.insert(0,"")
+        self.new_task_entry.pack()
+        #self.new_task_entry.bind("<KeyRelease>", self.new_task_entry_change)
+
+        self.left_middle_frame = tk.Frame(master=self.left_frame,relief=tk.RAISED)
+        self.left_middle_frame.pack(pady=2, padx=2)
+
         self.child_issue_var = tk.IntVar()
-        self.child_task_checkbox = tk.Checkbutton(self.left_frame, text='Child task',\
+        self.child_task_checkbox = tk.Checkbutton(self.left_middle_frame, text='Child task',\
             variable=self.child_issue_var, onvalue=1, offvalue=0)
         self.child_task_checkbox.pack(side= tk.RIGHT, padx=2)
+
+        self.today_plan_var = tk.IntVar()
+        self.today_plan_checkbox = tk.Checkbutton(self.left_middle_frame, text='Today plan',\
+            variable=self.today_plan_var, onvalue=1, offvalue=0)
+        self.today_plan_checkbox.pack(side= tk.RIGHT, padx=2)
 
         self.add_task_button = tk.Button(master=self.left_frame, text="+", command=self.add_task_command)
         self.add_task_button.pack(side=tk.RIGHT, padx=2)
@@ -241,8 +254,9 @@ class DaftarGui(tk.Tk):
     
     def populate_tasks_list(self):
         tmp_list = ["closed", "dropped"]
-        self.task_list_var.set([x["name"] + "-> " + x["due date"] if "due date" in x and x["status"] \
-            not in tmp_list else x["name"] for x in self.current_tasks_list])
+        self.task_list_var.set([x["name"] + "-> " + x["due date"] if ("due date" in x) \
+            and ("status" in x) and (x["status"] not in tmp_list) else x["name"] \
+                for x in self.current_tasks_list])
         #also trigerring a reset to the rest of the lists
         self.task_list.select_set(0)
         self.task_list_change()
@@ -447,30 +461,47 @@ class DaftarGui(tk.Tk):
         self.current_filter_entry_value=value
 
     def add_task_command(self,event=[]):
-        new_dict={}
-        new_dict["New task"]=""
-        tmp_win=popups.MultipleEntryPopupWin(self.window,self,new_dict)
-        tmp_win.grab_set()
-        if tmp_win.show_win():
-            #recall that we assume our loaded_task_list is always the same
-            #as that in og_db_obj (it's indeed the same object)
-            new_id = self.log_db_obj.generate_new_id()
-            if new_id == -1:
-                #we must not be here!
-                raise Exception("I'm getting id=-1 !!")
+        task_name = self.new_task_entry.get().strip()
+        if task_name=="":
+            return
+        
+        #recall that we assume our loaded_task_list is always the same
+        #as that in og_db_obj (it's indeed the same object)
+        new_id = self.log_db_obj.generate_new_id()
+        if new_id == -1:
+            #we must not be here!
+            raise Exception("I'm getting id=-1 !!")
 
-            self.loaded_tasks_list.append({"name":new_dict["New task"],"id":new_id})
-            #applying filters again, which repopulates tasks_list
-            self.update_filters_list()
-            
-            #here I'm neglecting the selection on tasks_list widget!
-            #the user will see the new task in keys and logs lists widgets until
-            #he touches the tasks_list
-            self.current_task=self.loaded_tasks_list[-1]
-            #these two functions only use self.current_task
-            self.populate_keys_list()
-            self.populate_logs_list()
-            self.auto_save()
+        new_task = {}
+        new_task["id"]=new_id
+        new_task["name"]= task_name
+        
+
+        if self.child_issue_var.get():
+            if self.current_task!={}:
+                if "id" not in self.current_task:
+                    messagebox.showerror("error", "cuurent task has no id. this mist not happen")
+                    return
+                new_task["parent"] = self.current_task["id"]
+        
+        if self.today_plan_var.get():
+            x= datetime.datetime.now()
+            new_task["due date"]= x.strftime("%d-%m-%y")
+            new_task["status"]="open"
+            new_task["priority"]=True
+        
+        self.loaded_tasks_list.append(new_task)
+        #applying filters again, which repopulates tasks_list
+        self.update_filters_list()
+        
+        #here I'm neglecting the selection on tasks_list widget!
+        #the user will see the new task in keys and logs lists widgets until
+        #he touches the tasks_list
+        self.current_task=self.loaded_tasks_list[-1]
+        #these two functions only use self.current_task
+        self.populate_keys_list()
+        self.populate_logs_list()
+        self.auto_save()
 
     def del_task_command(self,event=[]):
         # problem is that user selects from the current list of tasks in 
