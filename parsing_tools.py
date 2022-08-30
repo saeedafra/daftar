@@ -30,6 +30,11 @@ def check_key_value(key_dict: dict, value_string: str):
         if len(tmp) ==3:
             if False not in [x.isdigit() for x in tmp]:
                 value = value_string
+    elif key_dict["type"] == "int":
+        try:
+            value = int(value_string)
+        except ValueError:
+            value = None
     else:
         #type undefined
         pass

@@ -1,4 +1,6 @@
 keys:
+- name: id
+  type: int
 - name: status
   type: string
   range: categorical
@@ -14,8 +16,3 @@ keys:
   type: date
 - name: project
   type: string
-  range: categorical
-  possible values:
-  - work
-  - personal
-  

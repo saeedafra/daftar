@@ -39,11 +39,13 @@ class LogDb:
             core = "untitled000"
         else:
             raise Exception("yml file name format not as expected")
+        
         self.auto_save_yml_file = core + "_autosave.yml"
 
         self.__loaded = True
         self.ids_list=self.extract_ids()
         self.update_tasks_list()
+        self.update_level_all()
 
     def extract_ids(self) -> list:
         ids_list=[]
@@ -133,6 +135,57 @@ class LogDb:
         if not self.load_success:
             raise Exception("this must not happen")
         self.yml_data = deepcopy(self.original_yml_data)
+
+    def update_level_all(self):
+        #first remove all levels :D some sort of optimization here!
+        for task in self.yml_data:
+            if "level" in task:
+                del task["level"]
+        
+        for task in self.yml_data:
+            self.update_level_single(task)
+
+    def update_level_single(self,task_dict):
+        """
+        searches through the list of tasks, obtains the parents
+        and level of the task in task_dict.
+        information stored inside the dict. no return value.
+        So make sure the dict object is passed without copying
+        """
+        #TODO unoptimized
+        if "level" in task_dict and task_dict["level"]> 100:
+            raise Exception("a level larger than 100. this is probably a loop! I'm looking at task id " + task_dict["id"])
+
+        #I'm assuming all level keys are removed!
+        if "level" in task_dict:
+            # if you want it updated after the first round, remove level first!
+            return
+            
+        task_dict["level"]= 0
+        if "parent" in task_dict and task_dict["parent"]:
+            tmp_parent_list = task_dict["parent"]
+            if not isinstance(tmp_parent_list,list):
+                tmp_parent_list=[task_dict["parent"]]
+            
+            level_per_parent_line = [0 for x in tmp_parent_list]
+            for parent_id_idx in range(len(tmp_parent_list)):
+                for task in self.yml_data:
+                    #I assume no task can have a parent id equal to its own id
+                    if task["id"]==tmp_parent_list[parent_id_idx]:
+                        if "level" in task:
+                            #meaning it's already done
+                            pass
+                        else:
+                            self.update_level_single(task)
+                        
+                        level_per_parent_line[parent_id_idx] += task["level"]
+
+                        #ids are unique so no point in continuing with this loop
+                        break
+            
+            task_dict["level"] = 1 + max(level_per_parent_line)
+
+
 
             
         

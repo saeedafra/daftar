@@ -5,6 +5,8 @@ Saeed Afrasiabi
 
 import tkinter as tk
 from tkinter import filedialog, messagebox
+
+from numpy import isin
 import log_db_tools
 #from settings_gui import SettingsGui
 import entry_popup_win as popups
@@ -437,9 +439,20 @@ class DaftarGui(tk.Tk):
         for task_index in range(len(self.loaded_tasks_list)):
             do_remove = False
             for key in self.current_filters:    
-                if self.current_filters[key]!="":
+                if self.current_filters[key]:
+                    if isinstance(self.current_filters[key], list):
+                        tmp = copy(self.current_filters[key])
+                    else:
+                        tmp = [copy(self.current_filters[key])]
+
+                    if key in self.loaded_tasks_list[task_index] and \
+                        isinstance(self.loaded_tasks_list[task_index][key],list):
+                        messagebox.showerror("db error", "I ran into a task key value which is a list. This is not supported as it causes " + \
+                            "problem with the filters which are a list. The task id is "+ str(self.loaded_tasks_list[task_index]["id"]))
+                        return
+
                     if key not in self.loaded_tasks_list[task_index] or \
-                        self.loaded_tasks_list[task_index][key]!=self.current_filters[key]:
+                        self.loaded_tasks_list[task_index][key] not in tmp:
                         do_remove = True
                 else:
                     #when filter is only a "", then any value is okay
@@ -521,7 +534,7 @@ class DaftarGui(tk.Tk):
                     messagebox.showerror("error", "cuurent task has no id. this mist not happen")
                     return
                 new_task["parent"] = self.current_task["id"]
-        
+
         if self.today_plan_var.get():
             x= datetime.datetime.now()
             new_task["due date"]= x.strftime("%d.%m.%y")
@@ -536,6 +549,8 @@ class DaftarGui(tk.Tk):
         #the user will see the new task in keys and logs lists widgets until
         #he touches the tasks_list
         self.current_task=self.loaded_tasks_list[-1]
+        self.log_db_obj.update_level_single(self.current_task)
+
         #these two functions only use self.current_task
         self.populate_keys_list()
         self.populate_logs_list()
@@ -549,10 +564,31 @@ class DaftarGui(tk.Tk):
         # a good trick here is to just mark it :D 
         # maybe as a task with a key "deleted"=true and we always add 
         #an implicit filter for NOT Having deleted :D
-        if self.current_task:
+        if not self.current_task:
+            return
+
+        children_list=[]
+        for task in self.loaded_tasks_list:
+            if "deleted" in task and task["deleted"] == True:
+                continue
+            
+            if "parent" in task:
+                if isinstance(task["parent"],list):
+                    tmp = copy(task["parent"])
+                else:
+                    tmp = [copy(task["parent"])]
+            
+                if self.current_task["id"] in tmp:
+                    children_list.append(task["id"])
+
+        if children_list:
+            messagebox.showerror("error", "The task you want to delete has children. So I won't delete it. I'm filtering them by ID. Deal with them first.")
+            self.current_filters["id"] = children_list
+            self.update_filters_list()
+        else:
             self.current_task["deleted"]=True
-        self.update_filters_list()
-        self.auto_save()
+            self.update_filters_list()
+            self.auto_save()
     
     def auto_save(self):
         # note that this function is the one that is called with every change
