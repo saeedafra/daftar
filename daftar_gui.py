@@ -244,7 +244,7 @@ class DaftarGui(tk.Tk):
         #no need to choose where to put it, later on i will sort this by date
         new_dict={}
         x= datetime.datetime.now()
-        new_dict["date"]=x.strftime("%d-%m-%y")
+        new_dict["date"]=x.strftime("%d.%m.%y")
         new_dict["text"]=""
         tmp_win=popups.MultipleEntryPopupWin(self.window,self,new_dict)
         tmp_win.grab_set()
@@ -524,7 +524,7 @@ class DaftarGui(tk.Tk):
         
         if self.today_plan_var.get():
             x= datetime.datetime.now()
-            new_task["due date"]= x.strftime("%d-%m-%y")
+            new_task["due date"]= x.strftime("%d.%m.%y")
             new_task["status"]="open"
             new_task["priority"]=True
         
