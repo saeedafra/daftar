@@ -29,7 +29,9 @@ class DaftarGui(tk.Tk):
         self.current_task={}
         self.current_filter_entry_value = None
         self.current_selected_filter_key_index = -1
-        
+        self.log_text_key_release_counter = 0
+        self.log_text_key_release_autosave_threshold = 5
+
         self.load_keys_yml()
 
         self.current_filters={}
@@ -209,15 +211,30 @@ class DaftarGui(tk.Tk):
 
         self.log_text=tk.Text(master=self.log_frame)
         self.log_text.pack(fill=tk.BOTH ,expand=True)
-        self.log_text.bind("<KeyRelease>", self.log_text_change)
-
-    def log_text_change(self,event=[]):
+        self.log_text.bind("<KeyRelease>", self.log_text_key_release)
+        self.log_text.bind("<FocusOut>", self.log_text_focus_out)
+        
+    def log_text_focus_out(self,event=[]):
         if not( self.current_task and "logs" in self.current_task and \
             self.current_log_index!=-1):
             return
+        
+        self.log_text_key_release_counter = 0
+        self.auto_save()
+
+    def log_text_key_release(self,event=[]):
+        if not( self.current_task and "logs" in self.current_task and \
+            self.current_log_index!=-1):
+            return
+
         tmp_text: str=self.log_text.get("1.0",tk.END)
         tmp_text=tmp_text.replace("\n", "\\n")
         self.current_task["logs"][self.current_log_index]["text"]=tmp_text
+
+        self.log_text_key_release_counter += 1
+        if self.log_text_key_release_counter >= self.log_text_key_release_autosave_threshold:
+            self.log_text_key_release_counter = 0
+            self.auto_save()
 
 
     def keys_yml_button_command(self,event=[]):
@@ -384,6 +401,7 @@ class DaftarGui(tk.Tk):
         tmp_text = tmp_text.replace("\\n","\n")
         self.log_text.delete("1.0",tk.END)
         self.log_text.insert("1.0", tmp_text)
+        self.log_text_key_release_counter=0
 
     def logs_list_doubleclick(self,event=[]):
         key_index = self.logs_list.curselection()[0]
