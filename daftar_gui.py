@@ -6,7 +6,7 @@ Saeed Afrasiabi
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from numpy import isin
+from numpy import expand_dims, isin
 import log_db_tools
 #from settings_gui import SettingsGui
 import entry_popup_win as popups
@@ -33,6 +33,9 @@ class DaftarGui(tk.Tk):
         self.current_selected_filter_key_index = -1
         self.log_text_key_release_counter = 0
         self.log_text_key_release_autosave_threshold = 5
+        self.task_list_squeezed=False
+        self.logs_list_squeezed=False
+        self.log_text_squeezed=False
 
         self.load_keys_yml()
 
@@ -93,7 +96,7 @@ class DaftarGui(tk.Tk):
         self.keys_yml_button.pack(side=tk.RIGHT, padx=2)
 
         self.filter_frame = tk.Frame(master=self.window,relief=tk.RAISED)
-        self.filter_frame.pack(side = tk.LEFT, pady=2, padx=2, expand=True, fill=tk.Y)
+        self.filter_frame.pack(side = tk.LEFT, pady=2, padx=2, fill=tk.Y)
 
         self.filter_list_label = tk.Label(self.filter_frame, text = "Filters")
         self.filter_list_label.pack()
@@ -130,8 +133,9 @@ class DaftarGui(tk.Tk):
 
         self.left_frame = tk.Frame(master=self.window,relief=tk.RAISED)
         self.left_frame.pack(fill=tk.BOTH, side=tk.LEFT, expand=True, pady=2, padx=2)
+        self.left_frame.pack_propagate(0)
         
-        self.tasks_list_label = tk.Label(self.left_frame, text = "Tasks view")
+        self.tasks_list_label = tk.Button(self.left_frame, text = "Tasks view <>", command=self.squeeze_task_command)
         self.tasks_list_label.pack()
 
         self.task_list_var = tk.StringVar(value=[""])
@@ -192,8 +196,9 @@ class DaftarGui(tk.Tk):
 
         self.right_frame = tk.Frame(master=self.window,relief=tk.RAISED)
         self.right_frame.pack(fill=tk.BOTH, side = tk.LEFT, expand=True, pady=2, padx=2)
+        self.right_frame.pack_propagate(0)
 
-        self.logs_list_label = tk.Label(self.right_frame, text = "Log entries")
+        self.logs_list_label = tk.Button(self.right_frame, text = "Log entries <>", command = self.squeeze_logs_command)
         self.logs_list_label.pack()
 
         self.logs_list_var = tk.StringVar(value=[""])
@@ -210,12 +215,48 @@ class DaftarGui(tk.Tk):
 
         self.log_frame = tk.Frame(master=self.window,relief=tk.RAISED)
         self.log_frame.pack(fill=tk.BOTH, side = tk.LEFT, expand=True, pady=2, padx=2)
+        self.log_frame.pack_propagate(0)
 
-        self.log_text=tk.Text(master=self.log_frame)
+        self.log_text_label = tk.Button(self.log_frame, text = "Single log <>", command = self.squeeze_log_text_command)
+        self.log_text_label.pack()
+
+        self.log_text=tk.Text(master=self.log_frame, width=10)
         self.log_text.pack(fill=tk.BOTH ,expand=True)
         self.log_text.bind("<KeyRelease>", self.log_text_key_release)
         self.log_text.bind("<FocusOut>", self.log_text_focus_out)
         
+        
+    def squeeze_task_command(self,event=[]):
+        self.task_list_squeezed = not self.task_list_squeezed
+        if self.task_list_squeezed:
+            
+            self.left_frame.pack(fill=tk.Y, expand = False)
+            self.left_frame.configure(width=70)
+        else:
+            self.left_frame.pack(fill=tk.BOTH, expand = True)
+            self.left_frame.configure(width=150)
+        
+    def squeeze_logs_command(self,event=[]):
+        self.logs_list_squeezed = not self.logs_list_squeezed
+        if self.logs_list_squeezed:
+            
+            self.right_frame.pack(fill=tk.Y, expand = False)
+            self.right_frame.configure(width=70)
+        else:
+            self.right_frame.pack(fill=tk.BOTH, expand = True)
+            self.right_frame.configure(width=150)
+
+    def squeeze_log_text_command(self,event=[]):
+        self.log_text_squeezed = not self.log_text_squeezed
+        if self.log_text_squeezed:
+            
+            self.log_frame.pack(fill=tk.Y, expand = False)
+            self.log_frame.configure(width=70)
+        else:
+            self.log_frame.pack(fill=tk.BOTH, expand = True)
+            self.log_frame.configure(width=150)
+
+
     def log_text_focus_out(self,event=[]):
         if not( self.current_task and "logs" in self.current_task and \
             self.current_log_index!=-1):
