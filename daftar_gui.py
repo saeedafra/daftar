@@ -54,7 +54,7 @@ class DaftarGui(tk.Tk):
          
     def build_window(self):
         self.window = tk.Tk()
-        self.window.geometry("800x500")
+        self.window.geometry("900x500")
         #self.window_height=500
         #self.window_width=700
         self.window.title("Logger v0.0")
@@ -203,8 +203,23 @@ class DaftarGui(tk.Tk):
 
         self.del_log_button = tk.Button(master=self.right_frame, text="-", command=self.del_log_command)
         self.del_log_button.pack(side=tk.RIGHT, padx=2)
-        
-    
+
+        self.log_frame = tk.Frame(master=self.window,relief=tk.RAISED)
+        self.log_frame.pack(fill=tk.BOTH, side = tk.LEFT, expand=True, pady=2, padx=2)
+
+        self.log_text=tk.Text(master=self.log_frame)
+        self.log_text.pack(fill=tk.BOTH ,expand=True)
+        self.log_text.bind("<KeyRelease>", self.log_text_change)
+
+    def log_text_change(self,event=[]):
+        if not( self.current_task and "logs" in self.current_task and \
+            self.current_log_index!=-1):
+            return
+        tmp_text: str=self.log_text.get("1.0",tk.END)
+        tmp_text=tmp_text.replace("\n", "\\n")
+        self.current_task["logs"][self.current_log_index]["text"]=tmp_text
+
+
     def keys_yml_button_command(self,event=[]):
         self.load_keys_yml()
 
@@ -365,6 +380,10 @@ class DaftarGui(tk.Tk):
             self.current_log_index=-1
             return
         self.current_log_index=self.logs_list.curselection()[0]
+        tmp_text: str = self.current_task["logs"][self.current_log_index]["text"]
+        tmp_text = tmp_text.replace("\\n","\n")
+        self.log_text.delete("1.0",tk.END)
+        self.log_text.insert("1.0", tmp_text)
 
     def logs_list_doubleclick(self,event=[]):
         key_index = self.logs_list.curselection()[0]
