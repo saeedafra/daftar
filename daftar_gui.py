@@ -289,8 +289,7 @@ class DaftarGui(tk.Tk):
     
     def populate_tasks_list(self):
         tmp_list = ["closed", "dropped"]
-        self.task_list_var.set([x["name"] + "-> " + x["due date"] if ("due date" in x) \
-            and ("status" in x) and (x["status"] not in tmp_list) else x["name"] \
+        self.task_list_var.set(["*"* x["level"] + x["name"] + "-> " + x["due date"] if ("due date" in x) else ("*"* x["level"] + x["name"]) \
                 for x in self.current_tasks_list])
         #also trigerring a reset to the rest of the lists
         self.task_list.select_set(0)
@@ -542,14 +541,15 @@ class DaftarGui(tk.Tk):
             new_task["priority"]=True
         
         self.loaded_tasks_list.append(new_task)
-        #applying filters again, which repopulates tasks_list
-        self.update_filters_list()
         
         #here I'm neglecting the selection on tasks_list widget!
         #the user will see the new task in keys and logs lists widgets until
         #he touches the tasks_list
         self.current_task=self.loaded_tasks_list[-1]
         self.log_db_obj.update_level_single(self.current_task)
+        
+        #applying filters again, which repopulates tasks_list
+        self.update_filters_list()
 
         #these two functions only use self.current_task
         self.populate_keys_list()
