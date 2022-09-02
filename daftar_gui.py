@@ -67,7 +67,7 @@ class DaftarGui(tk.Tk):
         #self.window_width=700
         self.window.title(self.window_title_string)
         self.window.bind("<Configure>",self.window_resize)
-        
+        self.window.bind("<Control-s>",self.save_button_command)
         self.settings_frame = tk.Frame(master=self.window,relief=tk.RAISED)
         self.settings_frame.pack(fill=tk.X, pady=2, padx=2)
 
