@@ -374,8 +374,13 @@ class DaftarGui(tk.Tk):
         #no correspondence need sto be kept as logs is already a list
         if "logs" in self.current_task:
             self.logs_list_var.set([str(log["date"]) + ": " + str(log["text"]) for log in self.current_task["logs"]])
+            self.logs_list.select_set(0)
+            self.logs_list_change()
         else:
             self.logs_list_var.set([])
+            self.log_text.delete("1.0", tk.END)
+        
+
 
     def settings_button_command(self, event=[]):
         #self.settings_gui_obj.run()
