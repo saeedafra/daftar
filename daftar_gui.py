@@ -22,6 +22,7 @@ class DaftarGui(tk.Tk):
         #self.settings_gui_obj=SettingsGui()
         self.settings_dict={}
         self.settings_dict["keys_yml"]="task_keys.yml"
+        self.window_title_string="Logger v0.0"
         
         self.states=[]
 
@@ -64,7 +65,7 @@ class DaftarGui(tk.Tk):
         self.window.geometry("900x500")
         #self.window_height=500
         #self.window_width=700
-        self.window.title("Logger v0.0")
+        self.window.title(self.window_title_string)
         self.window.bind("<Configure>",self.window_resize)
         
         self.settings_frame = tk.Frame(master=self.window,relief=tk.RAISED)
@@ -264,6 +265,7 @@ class DaftarGui(tk.Tk):
         
         self.log_text_key_release_counter = 0
         self.auto_save()
+        self.show_unsaved()
 
     def log_text_key_release(self,event=[]):
         if not( self.current_task and "logs" in self.current_task):
@@ -280,6 +282,7 @@ class DaftarGui(tk.Tk):
         if self.log_text_key_release_counter >= self.log_text_key_release_autosave_threshold:
             self.log_text_key_release_counter = 0
             self.auto_save()
+            self.show_unsaved()
 
 
     def keys_yml_button_command(self,event=[]):
@@ -299,12 +302,14 @@ class DaftarGui(tk.Tk):
             self.current_task["logs"].append(new_dict)
             self.populate_logs_list()
             self.auto_save()
+            self.show_unsaved()
 
     def del_log_command(self,event=[]):
         if self.current_log_index!=-1:
             self.current_task["logs"].pop(self.current_log_index)
             self.populate_logs_list()
             self.auto_save()
+            self.show_unsaved()
 
     def db_file_button_command(self):
         filename = filedialog.askopenfilename(title="select yaml file")
@@ -435,6 +440,7 @@ class DaftarGui(tk.Tk):
             self.current_task[new_dict["key"]]=value
             self.populate_keys_list()
             self.auto_save()
+            self.show_unsaved()
         
     def logs_list_change(self, event=[]):
         if len(self.logs_list.curselection())==0:
@@ -457,6 +463,7 @@ class DaftarGui(tk.Tk):
         if tmp_win.show_win():
             self.populate_logs_list()
             self.auto_save()
+            self.show_unsaved()
 
     def add_filter_button_command(self, event=[]):
         if self.filter_key_entry.get().strip() == "":
@@ -604,6 +611,7 @@ class DaftarGui(tk.Tk):
         self.populate_keys_list()
         self.populate_logs_list()
         self.auto_save()
+        self.show_unsaved()
 
     def del_task_command(self,event=[]):
         # problem is that user selects from the current list of tasks in 
@@ -638,10 +646,11 @@ class DaftarGui(tk.Tk):
             self.current_task["deleted"]=True
             self.update_filters_list()
             self.auto_save()
+            self.show_unsaved()
     
     def auto_save(self):
-        # note that this function is the one that is called with every change
-        self.saved = False
+        #note that this function is NOT called for every single change!
+        #specially for log text box it's called every few key stroke
 
         msg=self.log_db_obj.auto_save()
         if msg!="":
@@ -665,8 +674,14 @@ class DaftarGui(tk.Tk):
             self.saved=True
             if not self.settings_dict["db_file"]:
                 self.settings_dict["db_file"] = copy(file_to_try)
-            messagebox.showinfo("file", "file saved.")
+            self.show_saved()
 
+    def show_saved(self):
+        self.window.title(self.window_title_string)
+    
+    def show_unsaved(self):
+        self.window.title(self.window_title_string + " [unsaved]")
+    
     def new_button_command(self,event=[]):
         if not self.saved:
             messagebox.showerror('not saved',"File not saved yet!")
