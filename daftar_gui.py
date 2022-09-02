@@ -265,7 +265,7 @@ class DaftarGui(tk.Tk):
         
         self.log_text_key_release_counter = 0
         self.auto_save()
-        self.show_unsaved()
+        #autosaving but it doesn't necessarily mean a change has happened
 
     def log_text_key_release(self,event=[]):
         if not( self.current_task and "logs" in self.current_task):
@@ -276,14 +276,15 @@ class DaftarGui(tk.Tk):
 
         tmp_text: str=self.log_text.get("1.0",tk.END)
         tmp_text=tmp_text.replace("\n", "\\n")
-        self.current_task["logs"][self.current_log_index]["text"]=tmp_text
-
-        self.log_text_key_release_counter += 1
-        if self.log_text_key_release_counter >= self.log_text_key_release_autosave_threshold:
-            self.log_text_key_release_counter = 0
-            self.auto_save()
+        if self.current_task["logs"][self.current_log_index]["text"]!=tmp_text:
+            #the key release has caused a change!
+            self.current_task["logs"][self.current_log_index]["text"]=tmp_text
             self.show_unsaved()
 
+            self.log_text_key_release_counter += 1
+            if self.log_text_key_release_counter >= self.log_text_key_release_autosave_threshold:
+                self.log_text_key_release_counter = 0
+                self.auto_save()
 
     def keys_yml_button_command(self,event=[]):
         self.load_keys_yml()
@@ -680,6 +681,7 @@ class DaftarGui(tk.Tk):
         self.window.title(self.window_title_string)
     
     def show_unsaved(self):
+        self.saved=False
         self.window.title(self.window_title_string + " [unsaved]")
     
     def new_button_command(self,event=[]):
