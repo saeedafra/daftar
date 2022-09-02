@@ -266,8 +266,10 @@ class DaftarGui(tk.Tk):
         self.auto_save()
 
     def log_text_key_release(self,event=[]):
-        if not( self.current_task and "logs" in self.current_task and \
-            self.current_log_index!=-1):
+        if not( self.current_task and "logs" in self.current_task):
+            return
+        if self.current_log_index==-1:
+            messagebox.showerror("error","you're typing in log text box but no log entry is selected! this must not happen.")
             return
 
         tmp_text: str=self.log_text.get("1.0",tk.END)
@@ -436,7 +438,10 @@ class DaftarGui(tk.Tk):
         
     def logs_list_change(self, event=[]):
         if len(self.logs_list.curselection())==0:
-            self.current_log_index=-1
+            # not sure if nothing is selected anymore does triiger thi stoo
+            # and basically I don't know when it switches between something selected
+            #and something not sleected. this happens kind of randomly
+            #anyway, if nothing selected, I retain the previous selected_log_index
             return
         self.current_log_index=self.logs_list.curselection()[0]
         tmp_text: str = self.current_task["logs"][self.current_log_index]["text"]
@@ -580,6 +585,9 @@ class DaftarGui(tk.Tk):
             new_task["due date"]= x.strftime("%d.%m.%y")
             new_task["status"]="open"
             new_task["priority"]=True
+        else:
+            new_task["status"]="not started"
+            new_task["priority"]=False
         
         self.loaded_tasks_list.append(new_task)
         
