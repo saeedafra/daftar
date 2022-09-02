@@ -645,7 +645,7 @@ class DaftarGui(tk.Tk):
 
         msg=self.log_db_obj.auto_save()
         if msg!="":
-            messagebox.showerror('Could not autosave: ', msg)
+            messagebox.showerror('Autosave error', msg)
         
     
     def save_button_command(self,event=[]):
@@ -660,10 +660,11 @@ class DaftarGui(tk.Tk):
 
         msg=self.log_db_obj.save(file = copy(file_to_try))
         if msg!="":
-            messagebox.showerror('Could not save: ', msg)
+            messagebox.showerror('File Save error', msg)
         else:
             self.saved=True
-            self.settings_dict["db_file"] = copy(file_to_try)
+            if not self.settings_dict["db_file"]:
+                self.settings_dict["db_file"] = copy(file_to_try)
             messagebox.showinfo("file", "file saved.")
 
     def new_button_command(self,event=[]):
