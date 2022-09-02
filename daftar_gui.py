@@ -280,6 +280,7 @@ class DaftarGui(tk.Tk):
             #the key release has caused a change!
             self.current_task["logs"][self.current_log_index]["text"]=tmp_text
             self.show_unsaved()
+            self.populate_logs_list()
 
             self.log_text_key_release_counter += 1
             if self.log_text_key_release_counter >= self.log_text_key_release_autosave_threshold:
