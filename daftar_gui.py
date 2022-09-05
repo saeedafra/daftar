@@ -280,7 +280,7 @@ class DaftarGui(tk.Tk):
             #the key release has caused a change!
             self.current_task["logs"][self.current_log_index]["text"]=tmp_text
             self.show_unsaved()
-            self.populate_logs_list()
+            self.populate_logs_list(keep_selection = True)
 
             self.log_text_key_release_counter += 1
             if self.log_text_key_release_counter >= self.log_text_key_release_autosave_threshold:
@@ -370,12 +370,20 @@ class DaftarGui(tk.Tk):
 
         self.keys_list_var.set([key + ": " + str(self.current_task[key]) for key in self.current_task])
 
-    def populate_logs_list(self):
+    def populate_logs_list(self, keep_selection = False):
         #no correspondence need sto be kept as logs is already a list
         if "logs" in self.current_task:
+            if self.logs_list.curselection():
+                curr_sel = self.logs_list.curselection()[0]
+            else:
+                curr_sel=-1
             self.logs_list_var.set([str(log["date"]) + ": " + str(log["text"]) for log in self.current_task["logs"]])
-            self.logs_list.select_set(0)
-            self.logs_list_change()
+            if keep_selection and curr_sel != -1:
+                self.logs_list.select_set(curr_sel)
+            else:
+                self.logs_list.select_set(0)
+            self.logs_list_change(log_text_under_edit = True)
+            
         else:
             self.logs_list_var.set([])
             self.log_text.delete("1.0", tk.END)
@@ -446,22 +454,24 @@ class DaftarGui(tk.Tk):
 
             self.current_task[new_dict["key"]]=value
             self.populate_keys_list()
+            self.populate_tasks_list()
             self.auto_save()
             self.show_unsaved()
         
-    def logs_list_change(self, event=[]):
+    def logs_list_change(self, event=[], log_text_under_edit=False):
         if len(self.logs_list.curselection())==0:
             # not sure if nothing is selected anymore does triiger thi stoo
             # and basically I don't know when it switches between something selected
             #and something not sleected. this happens kind of randomly
             #anyway, if nothing selected, I retain the previous selected_log_index
             return
-        self.current_log_index=self.logs_list.curselection()[0]
-        tmp_text: str = self.current_task["logs"][self.current_log_index]["text"]
-        tmp_text = tmp_text.replace("\\n","\n")
-        self.log_text.delete("1.0",tk.END)
-        self.log_text.insert("1.0", tmp_text)
-        self.log_text_key_release_counter=0
+        if not log_text_under_edit:
+            self.current_log_index=self.logs_list.curselection()[0]
+            tmp_text: str = self.current_task["logs"][self.current_log_index]["text"]
+            tmp_text = tmp_text.replace("\\n","\n")
+            self.log_text.delete("1.0",tk.END)
+            self.log_text.insert("1.0", tmp_text)
+            self.log_text_key_release_counter=0
 
     def logs_list_doubleclick(self,event=[]):
         key_index = self.logs_list.curselection()[0]
