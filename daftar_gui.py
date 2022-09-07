@@ -44,6 +44,7 @@ class DaftarGui(tk.Tk):
         #for key in self.settings_dict["filter_keys"]:
         #    self.current_filters[key]=""
         self.current_filters_keys_list=[]
+        self.current_filter_mode = "and"
 
         self.saved = True
     
@@ -127,6 +128,11 @@ class DaftarGui(tk.Tk):
         self.del_filter_button = tk.Button(master=self.filter_buttons_frame, text="-", command=self.del_filter_button_command)
         self.del_filter_button.pack(side=tk.LEFT, padx=2)
 
+        self.and_or_var = tk.IntVar()
+        self.and_or_checkbox = tk.Checkbutton(self.filter_buttons_frame, text='or',\
+            variable=self.and_or_var, onvalue=1, offvalue=0, command = self.and_or_checkbox_change)
+        self.and_or_checkbox.pack(side= tk.RIGHT, padx=2)
+
         self.filter_list_var = tk.StringVar(value=[""])
         self.filter_list = tk.Listbox(master=self.filter_frame, listvariable=self.filter_list_var)
         self.filter_list.pack(fill=tk.Y, expand = True)
@@ -143,6 +149,7 @@ class DaftarGui(tk.Tk):
         self.task_list=tk.Listbox(master=self.left_frame, listvariable=self.task_list_var)
         self.task_list.pack(fill=tk.BOTH, expand = True)
         self.task_list.bind("<<ListboxSelect>>", self.task_list_change)
+        self.task_list.bind('<Double-1>', self.task_list_doubleclick)
         
         self.new_task_entry = tk.Entry(master=self.left_frame)
         self.new_task_entry.insert(0,"")
@@ -363,7 +370,20 @@ class DaftarGui(tk.Tk):
         self.populate_keys_list()
         self.populate_logs_list()
         self.keys_list_change()
+    
+    def task_list_doubleclick(self,event=[]):
+        # populates the list with the selected task and its children
+        if not self.current_task:
+            # though no idea how this could happen
+            return
 
+        self.current_filters={}
+        self.current_filters["parent"]= self.current_task["id"]
+        self.current_filters["id"]= self.current_task["id"]
+        self.current_filter_mode = "or"
+        self.and_or_var.set(1)
+        self.update_filters_list()
+        
     def populate_keys_list(self):
         #just to set a one to one correspondence between elements in list widget and the keys
         self.current_keys_list_from_keys_dict = [key for key in self.current_task]
@@ -371,6 +391,9 @@ class DaftarGui(tk.Tk):
         self.keys_list_var.set([key + ": " + str(self.current_task[key]) for key in self.current_task])
 
     def populate_logs_list(self, keep_selection = False):
+        """
+        keep_selection indicates whether we update or populate and reset selection!
+        """
         #no correspondence need sto be kept as logs is already a list
         if "logs" in self.current_task:
             if self.logs_list.curselection():
@@ -380,13 +403,14 @@ class DaftarGui(tk.Tk):
             self.logs_list_var.set([str(log["date"]) + ": " + str(log["text"]) for log in self.current_task["logs"]])
             if keep_selection and curr_sel != -1:
                 self.logs_list.select_set(curr_sel)
-            else:
+                self.logs_list_change(log_text_under_edit = True)
+            elif not keep_selection:
                 self.logs_list.select_set(0)
-            self.logs_list_change(log_text_under_edit = True)
-            
+                self.logs_list_change()
         else:
             self.logs_list_var.set([])
             self.log_text.delete("1.0", tk.END)
+            self.logs_list_change()
         
 
 
@@ -459,12 +483,20 @@ class DaftarGui(tk.Tk):
             self.show_unsaved()
         
     def logs_list_change(self, event=[], log_text_under_edit=False):
+        """
+        log_text_under_edit indicates that logs_list has not changed,
+        only the selection has been put back on whatever it was.
+        """
         if len(self.logs_list.curselection())==0:
             # not sure if nothing is selected anymore does triiger thi stoo
             # and basically I don't know when it switches between something selected
             #and something not sleected. this happens kind of randomly
             #anyway, if nothing selected, I retain the previous selected_log_index
             return
+        if not "logs" in self.current_task:
+            self.log_text.delete("1.0",tk.END)
+            return
+
         if not log_text_under_edit:
             self.current_log_index=self.logs_list.curselection()[0]
             tmp_text: str = self.current_task["logs"][self.current_log_index]["text"]
@@ -472,6 +504,9 @@ class DaftarGui(tk.Tk):
             self.log_text.delete("1.0",tk.END)
             self.log_text.insert("1.0", tmp_text)
             self.log_text_key_release_counter=0
+        else:
+            # nothing! let it be.
+            pass
 
     def logs_list_doubleclick(self,event=[]):
         key_index = self.logs_list.curselection()[0]
@@ -491,6 +526,9 @@ class DaftarGui(tk.Tk):
         self.current_filters[key]= self.current_filter_entry_value
         self.update_filters_list()
 
+    def and_or_checkbox_change(self,event=[]):
+        self.update_filters_list()
+
     def update_filters_list(self):
         """
         updates the list of current filters and applies the filters.
@@ -506,8 +544,10 @@ class DaftarGui(tk.Tk):
         
         tasks_indices_to_keep=[i for i in range(len(self.loaded_tasks_list))]
         for task_index in range(len(self.loaded_tasks_list)):
-            do_remove = False
-            for key in self.current_filters:    
+            do_remove = 0
+            remove_counter = 0
+            for key in self.current_filters:
+                remove_counter += 1
                 if self.current_filters[key]:
                     if isinstance(self.current_filters[key], list):
                         tmp = copy(self.current_filters[key])
@@ -522,17 +562,25 @@ class DaftarGui(tk.Tk):
 
                     if key not in self.loaded_tasks_list[task_index] or \
                         self.loaded_tasks_list[task_index][key] not in tmp:
-                        do_remove = True
+                        do_remove += 1
                 else:
                     #when filter is only a "", then any value is okay
                     if key not in self.loaded_tasks_list[task_index]:
-                        do_remove = True
+                        do_remove += 1
+            deleted_remove = False
             if "deleted" in self.loaded_tasks_list[task_index] and \
                 self.loaded_tasks_list[task_index]["deleted"]==True:
-                do_remove = True
+                deleted_remove = True
                 
-            if do_remove and (task_index in tasks_indices_to_keep):
-                tasks_indices_to_keep.remove(task_index)
+            if task_index in tasks_indices_to_keep:
+                if deleted_remove:
+                    tasks_indices_to_keep.remove(task_index)
+                elif self.and_or_var.get() and remove_counter > 0 and do_remove == remove_counter:
+                    #it's OR
+                    tasks_indices_to_keep.remove(task_index)
+                elif (not self.and_or_var.get()) and remove_counter > 0 and do_remove > 0:
+                    #it's AND
+                    tasks_indices_to_keep.remove(task_index)
    
         self.current_tasks_list=[self.loaded_tasks_list[i] for i in tasks_indices_to_keep]
         self.populate_tasks_list()
