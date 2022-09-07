@@ -3,7 +3,11 @@ Saeed Afrasiabi
 2022-08-23
 """
 
-from daftar_gui import DaftarGui
+from tkinter import messagebox
 
-myApp=DaftarGui()
-myApp.run()
+try:
+    from daftar_gui import DaftarGui
+    myApp=DaftarGui()
+    myApp.run()
+except Exception as e:
+    messagebox.showerror("Wrapper-caught error", "The following error was caught by the app wrapper:\n"+str(e))
