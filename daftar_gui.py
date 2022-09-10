@@ -148,6 +148,11 @@ class DaftarGui(tk.Tk):
         self.tasks_list_label = tk.Button(self.left_frame, text = "Tasks view <>", command=self.squeeze_task_command)
         self.tasks_list_label.pack()
 
+        self.task_list_type_var = tk.IntVar()
+        self.task_list_type_checkbox = tk.Checkbutton(self.left_frame, text='task/log',\
+            variable=self.task_list_type_var, onvalue=1, offvalue=0, command = self.task_list_type_change)
+        self.task_list_type_checkbox.pack()
+
         self.task_list_var = tk.StringVar(value=[""])
         self.task_list=tk.Listbox(master=self.left_frame, listvariable=self.task_list_var)
         self.task_list.pack(fill=tk.BOTH, expand = True)
@@ -236,7 +241,9 @@ class DaftarGui(tk.Tk):
         self.log_text.bind("<KeyRelease>", self.log_text_key_release)
         self.log_text.bind("<FocusOut>", self.log_text_focus_out)
         
-        
+    def task_list_type_change(self,event=[]):
+        self.update_task_filter_list()
+    
     def squeeze_task_command(self,event=[]):
         self.task_list_squeezed = not self.task_list_squeezed
         if self.task_list_squeezed:
@@ -269,7 +276,7 @@ class DaftarGui(tk.Tk):
 
 
     def log_text_focus_out(self,event=[]):
-        if not( self.current_task and "logs" in self.current_task and \
+        if not( self.current_task and "logs" in self.current_task["associated_task"] and \
             self.current_log_index!=-1):
             return
         
@@ -278,7 +285,7 @@ class DaftarGui(tk.Tk):
         #autosaving but it doesn't necessarily mean a change has happened
 
     def log_text_key_release(self,event=[]):
-        if not( self.current_task and "logs" in self.current_task):
+        if not( self.current_task and "logs" in self.current_task["associated_task"]):
             return
         if self.current_log_index==-1:
             messagebox.showerror("error","you're typing in log text box but no log entry is selected! this must not happen.")
@@ -286,9 +293,9 @@ class DaftarGui(tk.Tk):
 
         tmp_text: str=self.log_text.get("1.0",tk.END)
         tmp_text=tmp_text.replace("\n", "\\n")
-        if self.current_task["logs"][self.current_log_index]["text"]!=tmp_text:
+        if self.current_task["associated_task"]["logs"][self.current_log_index]["text"]!=tmp_text:
             #the key release has caused a change!
-            self.current_task["logs"][self.current_log_index]["text"]=tmp_text
+            self.current_task["associated_task"]["logs"][self.current_log_index]["text"]=tmp_text
             self.show_unsaved()
             self.populate_logs_list(keep_selection = True)
 
@@ -309,16 +316,16 @@ class DaftarGui(tk.Tk):
         tmp_win=popups.MultipleEntryPopupWin(self.window,self,new_dict)
         tmp_win.grab_set()
         if tmp_win.show_win():
-            if "logs" not in self.current_task:
-                self.current_task["logs"]=[]
-            self.current_task["logs"].append(new_dict)
+            if "logs" not in self.current_task["associated_task"]:
+                self.current_task["associated_task"]["logs"]=[]
+            self.current_task["associated_task"]["logs"].append(new_dict)
             self.populate_logs_list()
             self.auto_save()
             self.show_unsaved()
 
     def del_log_command(self,event=[]):
         if self.current_log_index!=-1:
-            self.current_task["logs"].pop(self.current_log_index)
+            self.current_task["associated_task"]["logs"].pop(self.current_log_index)
             self.populate_logs_list()
             self.auto_save()
             self.show_unsaved()
@@ -348,9 +355,23 @@ class DaftarGui(tk.Tk):
             return
     
     def populate_tasks_list(self):
-        tmp_list = ["closed", "dropped"]
-        self.task_list_var.set(["*"* x["level"] + x["name"] + "-> " + x["due date"] if ("due date" in x) else ("*"* x["level"] + x["name"]) \
-                for x in self.current_tasks_list])
+        if self.task_list_type_var.get():
+            #it's log-date-based
+            new_list=[]
+            for x in self.current_tasks_list:
+                if "log_date" in x:
+                    item_string = x["log_date"] + ": " + x["associated_task"]["name"]
+                    new_list.append(item_string)
+                else:
+                    # ignore!
+                    pass
+            self.task_list_var.set(new_list)
+        else:
+            self.task_list_var.set(["*"* x["associated_task"]["level"] + x["associated_task"]["name"] + "-> " + \
+                x["associated_task"]["due date"] if ("due date" in x["associated_task"]) else ("*"* x["associated_task"]["level"] +\
+                     x["associated_task"]["name"]) \
+                    for x in self.current_tasks_list])
+        
         #also trigerring a reset to the rest of the lists
         self.task_list.select_set(0)
         self.task_list_change()
@@ -381,29 +402,31 @@ class DaftarGui(tk.Tk):
             return
 
         self.current_filters={}
-        self.current_filters["parent"]= self.current_task["id"]
-        self.current_filters["id"]= self.current_task["id"]
+        self.current_filters["parent"]= self.current_task["associated_task"]["id"]
+        self.current_filters["id"]= self.current_task["associated_task"]["id"]
         self.current_filter_mode = "or"
         self.and_or_var.set(1)
-        self.update_filters_list()
+        self.update_task_filter_list()
         
     def populate_keys_list(self):
         #just to set a one to one correspondence between elements in list widget and the keys
-        self.current_keys_list_from_keys_dict = [key for key in self.current_task]
+        if not self.current_task:
+            return
 
-        self.keys_list_var.set([key + ": " + str(self.current_task[key]) for key in self.current_task])
+        self.current_keys_list_from_keys_dict = [key for key in self.current_task["associated_task"]]
+        self.keys_list_var.set([key + ": " + str(self.current_task["associated_task"][key]) for key in self.current_task["associated_task"]])
 
     def populate_logs_list(self, keep_selection = False):
         """
         keep_selection indicates whether we update or populate and reset selection!
         """
         #no correspondence need sto be kept as logs is already a list
-        if "logs" in self.current_task:
+        if self.current_task and "logs" in self.current_task["associated_task"]:
             if self.logs_list.curselection():
                 curr_sel = self.logs_list.curselection()[0]
             else:
                 curr_sel=-1
-            self.logs_list_var.set([str(log["date"]) + ": " + str(log["text"]) for log in self.current_task["logs"]])
+            self.logs_list_var.set([str(log["date"]) + ": " + str(log["text"]) for log in self.current_task["associated_task"]["logs"]])
             if keep_selection and curr_sel != -1:
                 self.logs_list.select_set(curr_sel)
                 self.logs_list_change(log_text_under_edit = True)
@@ -438,33 +461,33 @@ class DaftarGui(tk.Tk):
             return
         key_index = self.keys_list.curselection()[0]
         key= self.current_keys_list_from_keys_dict[key_index]
-        if key not in self.current_task:
+        if key not in self.current_task["associated_task"]:
             messagebox.showerror("key not in current_task, this must not happen")
             return
-        del self.current_task[key]
+        del self.current_task["associated_task"][key]
         self.populate_keys_list()
         
     def add_key_command(self, event=[]):
         i=0
-        while "new key " + str(i) in self.current_task:
+        while "new key " + str(i) in self.current_task["associated_task"]:
             i = i+1
        
-        self.current_task["new key "+ str(i)]=""
+        self.current_task["associated_task"]["new key "+ str(i)]=""
         self.populate_keys_list()
 
     def keys_list_doubleclick(self,event=[]):
         key_index = self.keys_list.curselection()[0]
         key= self.current_keys_list_from_keys_dict[key_index]
-        if key not in self.current_task:
+        if key not in self.current_task["associated_task"]:
             messagebox.showerror("bad error!", "key not in current_task, this must not happen")
             return
         new_dict={}
         new_dict["key"]=copy(key)
-        new_dict["value"]=self.current_task[key]
+        new_dict["value"]=self.current_task["associated_task"][key]
         tmp_win= popups.MultipleEntryPopupWin(self.window, self, new_dict)
         tmp_win.grab_set()
         if tmp_win.show_win():
-            if new_dict["key"]!=key and new_dict["key"] in self.current_task:
+            if new_dict["key"]!=key and new_dict["key"] in self.current_task["associated_task"]:
                 messagebox.showerror("key error", "the new key is already existing")
                 return
             if new_dict["key"] in self.settings_dict["filter_keys"]:
@@ -479,7 +502,7 @@ class DaftarGui(tk.Tk):
             if new_dict["key"]!=key:
                 messagebox.showwarning("key change", "You changed a key. Remove the original one yourself. (ass)")
 
-            self.current_task[new_dict["key"]]=value
+            self.current_task["associated_task"][new_dict["key"]]=value
             self.populate_keys_list()
             self.populate_tasks_list()
             self.auto_save()
@@ -496,13 +519,13 @@ class DaftarGui(tk.Tk):
             #and something not sleected. this happens kind of randomly
             #anyway, if nothing selected, I retain the previous selected_log_index
             return
-        if not "logs" in self.current_task:
+        if not "logs" in self.current_task["associated_task"]:
             self.log_text.delete("1.0",tk.END)
             return
 
         if not log_text_under_edit:
             self.current_log_index=self.logs_list.curselection()[0]
-            tmp_text: str = self.current_task["logs"][self.current_log_index]["text"]
+            tmp_text: str = self.current_task["associated_task"]["logs"][self.current_log_index]["text"]
             tmp_text = tmp_text.replace("\\n","\n")
             self.log_text.delete("1.0",tk.END)
             self.log_text.insert("1.0", tmp_text)
@@ -513,7 +536,7 @@ class DaftarGui(tk.Tk):
 
     def logs_list_doubleclick(self,event=[]):
         key_index = self.logs_list.curselection()[0]
-        tmp_win= popups.MultipleEntryPopupWin(self.window, self, self.current_task["logs"][key_index])
+        tmp_win= popups.MultipleEntryPopupWin(self.window, self, self.current_task["associated_task"]["logs"][key_index])
         tmp_win.grab_set()
         if tmp_win.show_win():
             self.populate_logs_list()
@@ -522,7 +545,7 @@ class DaftarGui(tk.Tk):
 
     def reset_filter_button_command(self,event=[]):
         self.current_filters={}
-        self.update_filters_list()
+        self.update_task_filter_list()
 
     def add_filter_button_command(self, event=[]):
         if self.filter_key_entry.get().strip() == "":
@@ -531,12 +554,12 @@ class DaftarGui(tk.Tk):
             return
         key = self.filter_key_entry.get().strip()
         self.current_filters[key]= self.current_filter_entry_value
-        self.update_filters_list()
+        self.update_task_filter_list()
 
     def and_or_checkbox_change(self,event=[]):
-        self.update_filters_list()
+        self.update_task_filter_list()
 
-    def update_filters_list(self):
+    def update_task_filter_list(self):
         """
         updates the list of current filters and applies the filters.
         no optimization here, all filters applied from scratch everytime
@@ -589,15 +612,39 @@ class DaftarGui(tk.Tk):
                     #it's AND
                     tasks_indices_to_keep.remove(task_index)
    
-        self.current_tasks_list=[self.loaded_tasks_list[i] for i in tasks_indices_to_keep]
+        self.current_tasks_list=[{"associated_task": self.loaded_tasks_list[i]} for i in tasks_indices_to_keep]
+        # now it's time to process logs filters!
+        self.update_log_filter_list()
         self.populate_tasks_list()
+    
+    def update_log_filter_list(self):
+        # here I expect each itme in self.current_tasks_list contain only the associated_task
+        # and not yet the log_date
+        if self.task_list_type_var.get():
+            # list format changes so that log_dates are populated
+            # otherwise we just need the filter be applied in trimming the tasks.
+            new_list = []
+            for x in self.current_tasks_list:
+                if "logs" in x["associated_task"]:
+                    for y in x["associated_task"]["logs"]:
+                        new_list.append({"associated_task":x["associated_task"] , \
+                            "log_date": y["date"]})
+                else:
+                    #this must serve as a flag! :-?
+                    new_list.append({"associated_task":x["associated_task"] , \
+                            "log_date": "----"})
+            self.current_tasks_list = new_list
+        else:
+            #merely another layer of filtering, no log list expansion
+            pass
+
     
     def del_filter_button_command(self, event=[]):
         key_index=self.filter_list.curselection()
         if not key_index:
             return
         del self.current_filters[self.current_filters_keys_list[key_index[0]]]
-        self.update_filters_list()
+        self.update_task_filter_list()
 
     def filter_list_change(self,event=[]):
         pass
@@ -654,10 +701,10 @@ class DaftarGui(tk.Tk):
 
         if self.child_issue_var.get():
             if self.current_task!={}:
-                if "id" not in self.current_task:
+                if "id" not in self.current_task["associated_task"]:
                     messagebox.showerror("error", "cuurent task has no id. this mist not happen")
                     return
-                new_task["parent"] = self.current_task["id"]
+                new_task["parent"] = self.current_task["associated_task"]["id"]
 
         if self.today_plan_var.get():
             x= datetime.datetime.now()
@@ -673,11 +720,11 @@ class DaftarGui(tk.Tk):
         #here I'm neglecting the selection on tasks_list widget!
         #the user will see the new task in keys and logs lists widgets until
         #he touches the tasks_list
-        self.current_task=self.loaded_tasks_list[-1]
-        self.log_db_obj.update_level_single(self.current_task)
+        self.current_task={"associated_task":self.loaded_tasks_list[-1]}
+        self.log_db_obj.update_level_single(self.current_task["associated_task"])
         
         #applying filters again, which repopulates tasks_list
-        self.update_filters_list()
+        self.update_task_filter_list()
 
         #these two functions only use self.current_task
         self.populate_keys_list()
@@ -707,16 +754,16 @@ class DaftarGui(tk.Tk):
                 else:
                     tmp = [copy(task["parent"])]
             
-                if self.current_task["id"] in tmp:
+                if self.current_task["associated_task"]["id"] in tmp:
                     children_list.append(task["id"])
 
         if children_list:
             messagebox.showerror("error", "The task you want to delete has children. So I won't delete it. I'm filtering them by ID. Deal with them first.")
             self.current_filters["id"] = children_list
-            self.update_filters_list()
+            self.update_task_filter_list()
         else:
-            self.current_task["deleted"]=True
-            self.update_filters_list()
+            self.current_task["associated_task"]["deleted"]=True
+            self.update_task_filter_list()
             self.auto_save()
             self.show_unsaved()
     
@@ -787,6 +834,5 @@ class DaftarGui(tk.Tk):
         self.current_filters={}
         
         self.loaded_tasks_list=self.log_db_obj.get_db()
-        self.current_tasks_list = self.loaded_tasks_list
-        self.update_filters_list()
+        self.update_task_filter_list()
         
