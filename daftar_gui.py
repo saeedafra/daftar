@@ -122,6 +122,9 @@ class DaftarGui(tk.Tk):
         self.filter_buttons_frame = tk.Frame(master=self.filter_frame,relief=tk.RAISED)
         self.filter_buttons_frame.pack(pady=2, padx=2)
 
+        self.reset_filter_button = tk.Button(master=self.filter_buttons_frame, text="R", command=self.reset_filter_button_command)
+        self.reset_filter_button.pack(side=tk.LEFT, padx=2)
+
         self.add_filter_button = tk.Button(master=self.filter_buttons_frame, text="+", command=self.add_filter_button_command)
         self.add_filter_button.pack(side=tk.LEFT, padx=2)
 
@@ -516,6 +519,10 @@ class DaftarGui(tk.Tk):
             self.populate_logs_list()
             self.auto_save()
             self.show_unsaved()
+
+    def reset_filter_button_command(self,event=[]):
+        self.current_filters={}
+        self.update_filters_list()
 
     def add_filter_button_command(self, event=[]):
         if self.filter_key_entry.get().strip() == "":
