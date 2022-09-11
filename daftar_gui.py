@@ -40,11 +40,16 @@ class DaftarGui(tk.Tk):
 
         self.load_keys_yml()
 
-        self.current_filters={}
+        self.current_task_filters={}
         #for key in self.settings_dict["filter_keys"]:
-        #    self.current_filters[key]=""
-        self.current_filters_keys_list=[]
+        #    self.current_task_filters[key]=""
+        self.current_task_filters_keys_list=[]
         self.current_filter_mode = "and"
+
+        self.current_log_filters=[]
+        self.current_to_date_filter_value: str=""
+        self.current_from_date_filter_value: str=""
+
 
         self.saved = True
     
@@ -140,6 +145,23 @@ class DaftarGui(tk.Tk):
         self.filter_list = tk.Listbox(master=self.filter_frame, listvariable=self.filter_list_var)
         self.filter_list.pack(fill=tk.Y, expand = True)
         self.filter_list.bind("<<ListboxSelect>>", self.filter_list_change)
+
+        self.filter_date_from_entry = tk.Entry(master=self.filter_frame)
+        self.filter_date_from_entry.insert(0,"")
+        self.filter_date_from_entry.pack()
+        self.filter_date_from_entry.bind("<KeyRelease>", self.filter_date_from_entry_change)
+
+        self.filter_date_to_entry = tk.Entry(master=self.filter_frame)
+        self.filter_date_to_entry.insert(0,"")
+        self.filter_date_to_entry.pack()
+        self.filter_date_to_entry.bind("<KeyRelease>", self.filter_date_to_entry_change)
+
+        self.add_date_filter_button = tk.Button(master=self.filter_frame, text="Apply", command=self.add_date_filter_button_command)
+        self.add_date_filter_button.pack(side=tk.LEFT, padx=2)
+
+        self.reset_date_filter_button = tk.Button(master=self.filter_frame, text="Reset", command=self.reset_date_filter_button_command)
+        self.reset_date_filter_button.pack(side=tk.LEFT, padx=2)
+
 
         self.left_frame = tk.Frame(master=self.window,relief=tk.RAISED)
         self.left_frame.pack(fill=tk.BOTH, side=tk.LEFT, expand=True, pady=2, padx=2)
@@ -241,6 +263,57 @@ class DaftarGui(tk.Tk):
         self.log_text.bind("<KeyRelease>", self.log_text_key_release)
         self.log_text.bind("<FocusOut>", self.log_text_focus_out)
         
+    def filter_date_from_entry_change(self,event=[]):
+        self.current_from_date_filter_value = self.date_value_check(self.filter_date_from_entry)
+
+    def filter_date_to_entry_change(self,event=[]):
+        self.current_to_date_filter_value = self.date_value_check(self.filter_date_to_entry)
+
+    def date_value_check(self,entry_object: tk.Entry):
+        value_string=entry_object.get()
+        value_string=value_string.strip()
+        value=None #indicating no change
+
+        if "due date" not in self.settings_dict["filter_keys"]:
+            messagebox.showerror("keys yml error", "I expect the keys yml to contain the 'due date' key!")
+        else:
+            value = parsing_tools.check_key_value(self.settings_dict["filter_keys"]["due date"], value_string)
+        
+        if value == None:
+            entry_object.config(fg="red")
+        else:
+            entry_object.config(fg="black")
+        
+        #could be none!
+        return value
+
+    def add_date_filter_button_command(self,event=[]):
+        # note that there are two types of filters. task filters in self.current_task_filters dict and
+        # log date filters which are in self.current_log_filters list
+
+        values_from = []
+        if self.current_from_date_filter_value.strip():
+            valid1, values_from = parsing_tools.check_date_string(self.current_from_date_filter_value.strip())
+        
+        values_to = []
+        if self.current_to_date_filter_value.strip():
+            valid2, values_to = parsing_tools.check_date_string(self.current_to_date_filter_value.strip())
+
+        if not (valid1 and valid2):
+            messagebox.showerror("date string", "either to or from date string is invalid, not applying the filter")
+            return
+        
+        self.current_log_filters.append({"from": values_from,\
+                                         "to": values_to})
+        self.update_task_filter_list()
+        messagebox.showinfo("log filters", "Please note that there is a list of log date filters and this command adds "+ \
+            "a new item. But it's not shown. Reset and add if you need a fresh one.")
+
+
+    def reset_date_filter_button_command(self,event=[]):
+        self.current_log_filters=[]
+        self.update_task_filter_list()
+
     def task_list_type_change(self,event=[]):
         self.update_task_filter_list()
     
@@ -401,9 +474,9 @@ class DaftarGui(tk.Tk):
             # though no idea how this could happen
             return
 
-        self.current_filters={}
-        self.current_filters["parent"]= self.current_task["associated_task"]["id"]
-        self.current_filters["id"]= self.current_task["associated_task"]["id"]
+        self.current_task_filters={}
+        self.current_task_filters["parent"]= self.current_task["associated_task"]["id"]
+        self.current_task_filters["id"]= self.current_task["associated_task"]["id"]
         self.current_filter_mode = "or"
         self.and_or_var.set(1)
         self.update_task_filter_list()
@@ -544,7 +617,7 @@ class DaftarGui(tk.Tk):
             self.show_unsaved()
 
     def reset_filter_button_command(self,event=[]):
-        self.current_filters={}
+        self.current_task_filters={}
         self.update_task_filter_list()
 
     def add_filter_button_command(self, event=[]):
@@ -553,7 +626,7 @@ class DaftarGui(tk.Tk):
         if self.current_filter_entry_value == None:
             return
         key = self.filter_key_entry.get().strip()
-        self.current_filters[key]= self.current_filter_entry_value
+        self.current_task_filters[key]= self.current_filter_entry_value
         self.update_task_filter_list()
 
     def and_or_checkbox_change(self,event=[]):
@@ -566,23 +639,23 @@ class DaftarGui(tk.Tk):
         something changes
         """
         #the job of the list is to make the 1-2-1 correspondence
-        self.current_filters_keys_list=[x \
-            for x in self.current_filters]
+        self.current_task_filters_keys_list=[x \
+            for x in self.current_task_filters]
 
-        self.filter_list_var.set([x+": "+str(self.current_filters[x]) \
-            for x in self.current_filters])    
+        self.filter_list_var.set([x+": "+str(self.current_task_filters[x]) \
+            for x in self.current_task_filters])    
         
         tasks_indices_to_keep=[i for i in range(len(self.loaded_tasks_list))]
         for task_index in range(len(self.loaded_tasks_list)):
             do_remove = 0
             remove_counter = 0
-            for key in self.current_filters:
+            for key in self.current_task_filters:
                 remove_counter += 1
-                if self.current_filters[key]:
-                    if isinstance(self.current_filters[key], list):
-                        tmp = copy(self.current_filters[key])
+                if self.current_task_filters[key]:
+                    if isinstance(self.current_task_filters[key], list):
+                        tmp = copy(self.current_task_filters[key])
                     else:
-                        tmp = [copy(self.current_filters[key])]
+                        tmp = [copy(self.current_task_filters[key])]
 
                     if key in self.loaded_tasks_list[task_index] and \
                         isinstance(self.loaded_tasks_list[task_index][key],list):
@@ -618,32 +691,112 @@ class DaftarGui(tk.Tk):
         self.populate_tasks_list()
     
     def update_log_filter_list(self):
+        """
+        I expect that this function is only called from update_task_filters_list and 
+        nowehere else! 
+        """
         # here I expect each itme in self.current_tasks_list contain only the associated_task
         # and not yet the log_date
+        
+        if self.current_log_filters:
+            # meaning of log date filter: I filter the task list. Not the log list!! 
+            new_list = []
+            for x in self.current_tasks_list:
+                if "log_date" in x:
+                    messagebox.showerror("task list", "I'm seeing a log date when it must not yet be populated! raising an exception")
+                    raise Exception("I'm seeing a log date when it must not yet be populated!")
+
+                if "logs" in x["associated_task"]:
+                    match = False
+                    for log in x["associated_task"]["logs"]:
+                        if log["date"] and log["date"].strip():
+                            match = self.date_matches_filter(log["date"].strip(), self.current_log_filters)
+                            if self.task_list_type_var.get() and match:
+                                # here we need to filter the logs too
+                                new_list.append(x)
+                                new_list[-1]["log_date"]=log["date"]
+                        
+                    if not self.task_list_type_var.get() and match:
+                        #here there is no log filtering, only task filtering
+                        new_list.append(x)
+
+                else:
+                    # no log, skipped!
+                    pass
+            self.current_tasks_list = new_list
+        
         if self.task_list_type_var.get():
             # list format changes so that log_dates are populated
             # otherwise we just need the filter be applied in trimming the tasks.
-            new_list = []
-            for x in self.current_tasks_list:
-                if "logs" in x["associated_task"]:
-                    for y in x["associated_task"]["logs"]:
+            if self.current_log_filters:
+                #task list is already built with log dates
+                pass
+            else:
+                # no log filtering, so I just expand
+                new_list = []
+                for x in self.current_tasks_list:
+                    if "logs" in x["associated_task"]:
+                        for y in x["associated_task"]["logs"]:
+                            if y["date"] and y["date"].strip():
+                                new_list.append({"associated_task":x["associated_task"] , \
+                                    "log_date": y["date"]})
+                            else:
+                                new_list.append({"associated_task":x["associated_task"] , \
+                                    "log_date": "NA"})
+                    else:
+                        #this must serve as a flag! :-?
                         new_list.append({"associated_task":x["associated_task"] , \
-                            "log_date": y["date"]})
-                else:
-                    #this must serve as a flag! :-?
-                    new_list.append({"associated_task":x["associated_task"] , \
-                            "log_date": "----"})
-            self.current_tasks_list = new_list
+                                "log_date": "----"})
+                self.current_tasks_list = new_list
         else:
             #merely another layer of filtering, no log list expansion
             pass
 
-    
+    def date_matches_filter(self, date_str: str, filters_list:list) -> bool:
+        """
+        filters_list expected to be a list of dict's. each dict with "from" and "to" keys. 
+        Values be lists of dd mm yy values.
+        """
+
+        valid, values = parsing_tools.check_date_string(date_str)
+        if not valid:
+            messagebox.showerror("date string error", "I ran into an invalid date string " + date_str + \
+                " in logs \nand counting it as not matching the filters")
+            return False
+        
+        x = datetime.datetime(*values[-1::-1])
+
+        num_matched_filters = 0
+        for filter in self.current_log_filters:
+            matched = True
+            # if a filter date is missing it's simply not applied on that side
+            if filter["from"]:
+                y = datetime.datetime(*filter["from"][-1::-1])
+                if not x>=y:
+                    matched = False
+            if filter["to"]:
+                y = datetime.datetime(*filter["to"][-1::-1])
+                if not x<=y:
+                    matched = False
+            if matched:
+                num_matched_filters += 1
+        
+        is_log_filtering_mode_and = True
+
+        if is_log_filtering_mode_and  and num_matched_filters == len(self.current_log_filters):
+            #all filters must have been satisfied
+            return True
+        elif not is_log_filtering_mode_and and num_matched_filters > 0:
+            # even one does the job
+            return True
+        else:
+            return False
+
     def del_filter_button_command(self, event=[]):
         key_index=self.filter_list.curselection()
         if not key_index:
             return
-        del self.current_filters[self.current_filters_keys_list[key_index[0]]]
+        del self.current_task_filters[self.current_task_filters_keys_list[key_index[0]]]
         self.update_task_filter_list()
 
     def filter_list_change(self,event=[]):
@@ -759,7 +912,7 @@ class DaftarGui(tk.Tk):
 
         if children_list:
             messagebox.showerror("error", "The task you want to delete has children. So I won't delete it. I'm filtering them by ID. Deal with them first.")
-            self.current_filters["id"] = children_list
+            self.current_task_filters["id"] = children_list
             self.update_task_filter_list()
         else:
             self.current_task["associated_task"]["deleted"]=True
@@ -831,7 +984,7 @@ class DaftarGui(tk.Tk):
         #are done to self.curren_task which is a dict and the changes take the right place
         #in the original list.
         self.saved = True
-        self.current_filters={}
+        self.current_task_filters={}
         
         self.loaded_tasks_list=self.log_db_obj.get_db()
         self.update_task_filter_list()

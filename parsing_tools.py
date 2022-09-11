@@ -26,10 +26,9 @@ def check_key_value(key_dict: dict, value_string: str):
             value = False
     elif key_dict["type"] == "date":
         #assuming format is always dd.mm.yyyy
-        tmp = value_string.split(".")
-        if len(tmp) ==3:
-            if False not in [x.isdigit() for x in tmp]:
-                value = value_string
+        valid, tmp_val = check_date_string(value_string)
+        if valid:
+            value = value_string
     elif key_dict["type"] == "int":
         try:
             value = int(value_string)
@@ -40,4 +39,31 @@ def check_key_value(key_dict: dict, value_string: str):
         pass
 
     return value
-    
+
+def check_date_string(date_str: str) -> tuple:
+    valid = False
+    values = []
+    tmp = date_str.split(".")
+    if len(tmp) ==3:
+        try: 
+            values = [int(x) for x in tmp]
+        except ValueError:
+            return False,[]
+        
+        # I'm assuming DD MM YYYY
+        if not (values[0] >= 1 and values[0] <=31 and values[1] >= 1 and values[1] <=12 and values[2] >= 1):
+            #and yeah we have year 1 :D
+            return False,[]
+        
+        if values[2] <= 50:
+            values[2] += 2000
+            # in the unlikely yet interesting event that this code is used after 2050, then we have a hard to catch bug :D
+        elif values[2] <= 99:
+            values[2] += 1900
+        elif values[2] <= 999:
+            # whatever
+            values[2] += 1000
+
+        valid = True
+          
+    return valid, values
