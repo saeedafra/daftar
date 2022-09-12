@@ -663,8 +663,25 @@ class DaftarGui(tk.Tk):
                             "problem with the filters which are a list. The task id is "+ str(self.loaded_tasks_list[task_index]["id"]))
                         return
 
+                    if key == "due date":
+                        new_tmp = []
+                        for x in tmp:
+                            valid, values = parsing_tools.check_date_string(x)
+                            if not valid:
+                                messagebox.showerror("date string", "I ran into an invali ddate string " + x +" in filters list, skipping this item")
+                            else:
+                                new_tmp.append(values)
+                        tmp = new_tmp
+
+                    if key in self.loaded_tasks_list[task_index]:
+                        task_key_value = self.loaded_tasks_list[task_index][key]
+                        if key == "due date":
+                            valid, task_key_value = parsing_tools.check_date_string(self.loaded_tasks_list[task_index][key])
+                            if not valid:
+                                messagebox.showerror("date string", "I ran into an invali ddate string " + x +" in tasks list, skipping this item")
+                    
                     if key not in self.loaded_tasks_list[task_index] or \
-                        self.loaded_tasks_list[task_index][key] not in tmp:
+                        task_key_value not in tmp:
                         do_remove += 1
                 else:
                     #when filter is only a "", then any value is okay
