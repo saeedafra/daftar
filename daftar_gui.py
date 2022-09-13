@@ -756,9 +756,9 @@ class DaftarGui(tk.Tk):
                             match = self.date_matches_filter(log["date"].strip(), self.current_log_filters)
                             if self.task_list_type_var.get() and match:
                                 # here we need to filter the logs too
-                                new_list.append(x)
-                                new_list[-1]["log_date"]=log["date"]
-                        
+                                y={"associated_task":x["associated_task"], "log_date": log["date"]}
+                                new_list.append(y)
+                                
                     if not self.task_list_type_var.get() and match:
                         #here there is no log filtering, only task filtering
                         new_list.append(x)
