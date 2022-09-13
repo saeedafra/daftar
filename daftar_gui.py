@@ -123,6 +123,7 @@ class DaftarGui(tk.Tk):
         self.filter_value_entry.insert(0,"")
         self.filter_value_entry.pack()
         self.filter_value_entry.bind("<KeyRelease>", self.filter_value_entry_change)
+        self.filter_value_entry.bind("<Return>", self.add_filter_button_command)
 
         self.filter_buttons_frame = tk.Frame(master=self.filter_frame,relief=tk.RAISED)
         self.filter_buttons_frame.pack(pady=2, padx=2)
@@ -151,15 +152,18 @@ class DaftarGui(tk.Tk):
         self.filter_date_from_entry.pack()
         self.filter_date_from_entry.bind("<KeyRelease>", self.filter_date_from_entry_change)
         self.filter_date_from_entry.bind("<Control-Tab>",self.filter_date_from_entry_auto_complete)
+        self.filter_date_from_entry.bind("<Return>", self.add_date_filter_button_command)
 
         self.filter_date_to_entry = tk.Entry(master=self.filter_frame)
         self.filter_date_to_entry.insert(0,"")
         self.filter_date_to_entry.pack()
         self.filter_date_to_entry.bind("<KeyRelease>", self.filter_date_to_entry_change)
         self.filter_date_to_entry.bind("<Control-Tab>",self.filter_date_to_entry_auto_complete)
+        self.filter_date_to_entry.bind("<Return>", self.add_date_filter_button_command)
 
         self.add_date_filter_button = tk.Button(master=self.filter_frame, text="Apply", command=self.add_date_filter_button_command)
         self.add_date_filter_button.pack(side=tk.LEFT, padx=2)
+        
 
         self.reset_date_filter_button = tk.Button(master=self.filter_frame, text="Reset", command=self.reset_date_filter_button_command)
         self.reset_date_filter_button.pack(side=tk.LEFT, padx=2)
@@ -332,8 +336,10 @@ class DaftarGui(tk.Tk):
     def add_date_filter_button_command(self,event=[]):
         # note that there are two types of filters. task filters in self.current_task_filters dict and
         # log date filters which are in self.current_log_filters list
-
+        
         values_from = []
+        valid1 = True
+        valid2 = True
         if self.current_from_date_filter_value.strip():
             valid1, values_from = parsing_tools.check_date_string(self.current_from_date_filter_value.strip())
         
@@ -345,11 +351,17 @@ class DaftarGui(tk.Tk):
             messagebox.showerror("date string", "either to or from date string is invalid, not applying the filter")
             return
         
+        if not (self.current_from_date_filter_value.strip() or self.current_to_date_filter_value.strip()):
+            #both empty
+            return
+        
+        # was supposed to be a list accumulating filters but turning it off now as the list is not there and it causes confusion
+        self.current_log_filters = []
         self.current_log_filters.append({"from": values_from,\
                                          "to": values_to})
         self.update_task_filter_list()
-        messagebox.showinfo("log filters", "Please note that there is a list of log date filters and this command adds "+ \
-            "a new item. But it's not shown. Reset and add if you need a fresh one.")
+        #messagebox.showinfo("log filters", "Please note that there is a list of log date filters and this command adds "+ \
+        #    "a new item. But it's not shown. Reset and add if you need a fresh one.")
 
 
     def reset_date_filter_button_command(self,event=[]):
