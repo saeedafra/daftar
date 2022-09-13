@@ -232,6 +232,12 @@ class DaftarGui(tk.Tk):
         self.add_key_button = tk.Button(master=self.middle_frame, text="+", command=self.add_key_command)
         self.add_key_button.pack(padx=2, side = tk.RIGHT)
 
+        self.duedate_today_key_button = tk.Button(master=self.middle_frame, text="DD tdy", command=self.duedate_today_command)
+        self.duedate_today_key_button.pack(padx=2, fill = tk.X)
+
+        self.duedate_tomorrow_key_button = tk.Button(master=self.middle_frame, text="DD tmr", command=self.duedate_tomorrow_command)
+        self.duedate_tomorrow_key_button.pack(padx=2, fill = tk.X)
+
         self.right_frame = tk.Frame(master=self.window,relief=tk.RAISED)
         self.right_frame.pack(fill=tk.BOTH, side = tk.LEFT, expand=True, pady=2, padx=2)
         self.right_frame.pack_propagate(0)
@@ -528,6 +534,26 @@ class DaftarGui(tk.Tk):
     
     def keys_list_change(self,event=[]):
         pass
+    
+    def duedate_today_command(self,event=[]):
+        x= datetime.datetime.now()
+        date_str = x.strftime("%d.%m.%y")
+        if self.current_task["associated_task"]["due date"] != date_str:
+            self.current_task["associated_task"]["due date"] = date_str
+            self.populate_keys_list()
+            self.populate_tasks_list()
+            self.auto_save()
+            self.show_unsaved()
+
+    def duedate_tomorrow_command(self,event=[]):
+        x= datetime.datetime.now() + datetime.timedelta(days=1)
+        date_str = x.strftime("%d.%m.%y")
+        if self.current_task["associated_task"]["due date"] != date_str:
+            self.current_task["associated_task"]["due date"] = date_str
+            self.populate_keys_list()
+            self.populate_tasks_list()
+            self.auto_save()
+            self.show_unsaved()
     
     def del_key_command(self, event=[]):
         if not self.keys_list.curselection():
