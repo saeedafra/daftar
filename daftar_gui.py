@@ -150,11 +150,13 @@ class DaftarGui(tk.Tk):
         self.filter_date_from_entry.insert(0,"")
         self.filter_date_from_entry.pack()
         self.filter_date_from_entry.bind("<KeyRelease>", self.filter_date_from_entry_change)
+        self.filter_date_from_entry.bind("<Control-Tab>",self.filter_date_from_entry_auto_complete)
 
         self.filter_date_to_entry = tk.Entry(master=self.filter_frame)
         self.filter_date_to_entry.insert(0,"")
         self.filter_date_to_entry.pack()
         self.filter_date_to_entry.bind("<KeyRelease>", self.filter_date_to_entry_change)
+        self.filter_date_to_entry.bind("<Control-Tab>",self.filter_date_to_entry_auto_complete)
 
         self.add_date_filter_button = tk.Button(master=self.filter_frame, text="Apply", command=self.add_date_filter_button_command)
         self.add_date_filter_button.pack(side=tk.LEFT, padx=2)
@@ -274,6 +276,40 @@ class DaftarGui(tk.Tk):
 
     def filter_date_to_entry_change(self,event=[]):
         self.current_to_date_filter_value = self.date_value_check(self.filter_date_to_entry)
+
+    def filter_date_from_entry_auto_complete(self,event=[]):
+        date_str:str = self.date_entry_auto_complete(self.filter_date_from_entry.get())
+        self.filter_date_from_entry.delete(0,tk.END)
+        self.filter_date_from_entry.insert(0,date_str)
+        self.filter_date_from_entry_change()
+    
+    def filter_date_to_entry_auto_complete(self,event=[]):
+        date_str:str = self.date_entry_auto_complete(self.filter_date_to_entry.get())
+        self.filter_date_to_entry.delete(0,tk.END)
+        self.filter_date_to_entry.insert(0,date_str)
+        self.filter_date_to_entry_change()
+    
+    def date_entry_auto_complete(self, date_str: str):
+        date_str_stripped = date_str.strip()
+        x= datetime.datetime.now()
+        x.strftime("%d.%m.%y")
+        if not date_str_stripped:
+            return x.strftime("%d.%m.%y")
+        else:
+            date_list = date_str_stripped.split(".")
+            if False in [z.isdigit() or z=="" for z in date_list]:
+                #some part not okay, just skip it.
+                return date_str
+
+            if len(date_list)==1 or (len(date_list)==2 and date_list[1].strip()==""):
+                #meaning day was being typed, add month and year
+                return date_list[0]+"."+x.strftime("%m.%y")
+            elif len(date_list)==2 or (len(date_list)==3 and date_list[2].strip()==""):
+                #month was being typed, add year
+                return date_list[0]+"."+date_list[1]+"."+x.strftime("%y")
+            else:
+                #beyong auto complete :D
+                return date_str
 
     def date_value_check(self,entry_object: tk.Entry):
         value_string=entry_object.get()
